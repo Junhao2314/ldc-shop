@@ -42,7 +42,7 @@ export async function cancelOrder(orderId: string) {
   await checkAdmin()
   if (!orderId) throw new Error("Missing order id")
 
-  await db.transaction(async (tx) => {
+  await db.transaction(async (tx: any) => {
     // 1. Refund points if used
     const order = await tx.query.orders.findFirst({
       where: eq(orders.orderId, orderId),
@@ -120,7 +120,7 @@ export async function deleteOrder(orderId: string) {
   await checkAdmin()
   if (!orderId) throw new Error("Missing order id")
 
-  await db.transaction(async (tx) => {
+  await db.transaction(async (tx: any) => {
     await deleteOneOrder(tx, orderId)
   })
 
@@ -133,7 +133,7 @@ export async function deleteOrders(orderIds: string[]) {
   const ids = (orderIds || []).map((s) => String(s).trim()).filter(Boolean)
   if (!ids.length) return
 
-  await db.transaction(async (tx) => {
+  await db.transaction(async (tx: any) => {
     for (const id of ids) {
       await deleteOneOrder(tx, id)
     }

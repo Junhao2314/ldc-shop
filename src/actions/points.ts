@@ -38,7 +38,7 @@ export async function checkIn() {
         const reward = parseInt(rewardStr || '10', 10)
 
         // 3. Perform Check-in & Award Points
-        await db.transaction(async (tx) => {
+        await db.transaction(async (tx: any) => {
             await tx.insert(dailyCheckins).values({ userId })
             await tx.update(loginUsers)
                 .set({ points: sql`${loginUsers.points} + ${reward}` })

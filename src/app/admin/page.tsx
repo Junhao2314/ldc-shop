@@ -51,7 +51,7 @@ export default async function AdminPage() {
 
     return (
         <AdminProductsContent
-            products={products.map(p => ({
+            products={products.map((p: any) => ({
                 id: p.id,
                 name: p.name,
                 price: p.price,
