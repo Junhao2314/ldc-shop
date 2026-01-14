@@ -127,12 +127,18 @@ export async function addCards(formData: FormData) {
         // best effort
     }
 
-    await db.insert(cards).values(
-        cardList.map(key => ({
-            productId,
-            cardKey: key
-        }))
-    )
+    // D1 has a limit on SQL variables (around 100 bindings per query)
+    // Each card insert uses ~2 variables, so batch in groups of 30 to be safe
+    const BATCH_SIZE = 30
+    for (let i = 0; i < cardList.length; i += BATCH_SIZE) {
+        const batch = cardList.slice(i, i + BATCH_SIZE)
+        await db.insert(cards).values(
+            batch.map(key => ({
+                productId,
+                cardKey: key
+            }))
+        )
+    }
 
     revalidatePath('/admin')
     revalidatePath(`/admin/cards/${productId}`)
