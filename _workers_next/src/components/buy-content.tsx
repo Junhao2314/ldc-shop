@@ -20,7 +20,7 @@ import {
     DialogTrigger
 } from "@/components/ui/dialog"
 import ReactMarkdown from 'react-markdown'
-import { Share2 } from "lucide-react"
+import { Loader2, Minus, Plus, Share2 } from "lucide-react"
 import { toast } from "sonner"
 
 interface Product {
@@ -144,7 +144,7 @@ export function BuyContent({
                                         variant={stockCount > 0 ? "outline" : "destructive"}
                                         className={stockCount > 0 ? "border-primary/30 text-primary" : ""}
                                     >
-                                        {stockCount > 0 ? `${t('common.stock')}: ${stockCount}` : t('common.outOfStock')}
+                                        {stockCount >= 999999 ? t('common.unlimited') : (stockCount > 0 ? `${t('common.stock')}: ${stockCount}` : t('common.outOfStock'))}
                                     </Badge>
                                     {typeof product.purchaseLimit === 'number' && product.purchaseLimit > 0 && (
                                         <Badge variant="secondary" className="mt-2">
@@ -192,7 +192,7 @@ export function BuyContent({
                         <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-4">
                             <div className="flex-1">
                                 {isLoggedIn ? (
-                                    stockCount > 0 ? (
+                                    stockCount > 0 || stockCount >= 999999 ? (
                                         <div className="flex flex-col gap-4 w-full sm:w-auto">
                                             <div className="flex items-center gap-3">
                                                 <div className="flex items-center border border-border rounded-md">
@@ -203,28 +203,30 @@ export function BuyContent({
                                                         onClick={() => setQuantity(Math.max(1, quantity - 1))}
                                                         disabled={quantity <= 1}
                                                     >
-                                                        -
+                                                        <Minus className="h-4 w-4" />
                                                     </Button>
                                                     <Input
-                                                        type="text"
+                                                        type="number"
                                                         value={quantity}
                                                         onChange={(e) => {
-                                                            const val = e.target.value
-                                                            if (val === '') {
-                                                                setQuantity(1)
-                                                                return
-                                                            }
-                                                            const num = parseInt(val)
-                                                            if (!isNaN(num)) {
-                                                                setQuantity(num)
+                                                            const val = parseInt(e.target.value) || 1
+                                                            // For shared products (stock >= 999999), max is only limited by purchaseLimit
+                                                            const maxStock = stockCount >= 999999 ? 999999 : (stockCount - lockedStockCount)
+                                                            const max = product.purchaseLimit && product.purchaseLimit > 0
+                                                                ? Math.min(maxStock, product.purchaseLimit)
+                                                                : maxStock
+
+                                                            if (val >= 1 && val <= max) {
+                                                                setQuantity(val)
                                                             }
                                                         }}
                                                         onBlur={(e) => {
                                                             let val = parseInt(e.target.value)
                                                             if (isNaN(val) || val < 1) val = 1
 
-                                                            const limit = product.purchaseLimit && product.purchaseLimit > 0 ? product.purchaseLimit : 999
-                                                            const max = Math.min(stockCount, limit)
+                                                            const maxStock = stockCount >= 999999 ? 999999 : (stockCount - lockedStockCount)
+                                                            const limit = product.purchaseLimit && product.purchaseLimit > 0 ? product.purchaseLimit : 999999
+                                                            const max = Math.min(maxStock, limit)
 
                                                             if (val > max) {
                                                                 val = max
@@ -234,19 +236,33 @@ export function BuyContent({
                                                             setQuantity(val)
                                                         }}
                                                         className="w-16 h-8 rounded-none border-x-0 text-center px-1 focus-visible:ring-0 focus-visible:border-primary"
+                                                        min={1}
+                                                        max={
+                                                            product.purchaseLimit && product.purchaseLimit > 0
+                                                                ? Math.min(stockCount >= 999999 ? 999999 : (stockCount - lockedStockCount), product.purchaseLimit)
+                                                                : (stockCount >= 999999 ? 999999 : (stockCount - lockedStockCount))
+                                                        }
                                                     />
                                                     <Button
                                                         variant="ghost"
                                                         size="icon"
                                                         className="h-8 w-8 rounded-none border-l border-border"
                                                         onClick={() => {
-                                                            const limit = product.purchaseLimit && product.purchaseLimit > 0 ? product.purchaseLimit : 999
-                                                            const max = Math.min(stockCount, limit)
-                                                            setQuantity(Math.min(max, quantity + 1))
+                                                            const maxStock = stockCount >= 999999 ? 999999 : (stockCount - lockedStockCount)
+                                                            const limit = product.purchaseLimit && product.purchaseLimit > 0 ? product.purchaseLimit : 999999
+                                                            const max = Math.min(maxStock, limit)
+
+                                                            if (quantity < max) {
+                                                                setQuantity(quantity + 1)
+                                                            }
                                                         }}
-                                                        disabled={quantity >= Math.min(stockCount, (product.purchaseLimit && product.purchaseLimit > 0 ? product.purchaseLimit : 999))}
+                                                        disabled={
+                                                            quantity >= (product.purchaseLimit && product.purchaseLimit > 0
+                                                                ? Math.min(stockCount >= 999999 ? 999999 : (stockCount - lockedStockCount), product.purchaseLimit)
+                                                                : (stockCount >= 999999 ? 999999 : (stockCount - lockedStockCount)))
+                                                        }
                                                     >
-                                                        +
+                                                        <Plus className="h-4 w-4" />
                                                     </Button>
                                                 </div>
                                                 <div className="text-sm font-medium text-muted-foreground">

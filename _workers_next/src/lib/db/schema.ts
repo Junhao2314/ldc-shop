@@ -11,6 +11,7 @@ export const products = sqliteTable('products', {
     image: text('image'),
     isHot: integer('is_hot', { mode: 'boolean' }).default(false),
     isActive: integer('is_active', { mode: 'boolean' }).default(true),
+    isShared: integer('is_shared', { mode: 'boolean' }).default(false),
     sortOrder: integer('sort_order').default(0),
     purchaseLimit: integer('purchase_limit'),
     purchaseWarning: text('purchase_warning'), // Optional warning message shown before purchase

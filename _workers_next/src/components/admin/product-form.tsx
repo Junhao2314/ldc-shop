@@ -2,6 +2,7 @@
 
 import { saveProduct } from "@/actions/admin"
 import { Button } from "@/components/ui/button"
+import { Checkbox } from "@/components/ui/checkbox"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
@@ -44,10 +45,10 @@ export default function ProductForm({ product, categories = [] }: { product?: an
                         <Label htmlFor="slug">{t('admin.productForm.slugLabel')}</Label>
                         <div className="flex items-center gap-2">
                             <span className="text-sm text-muted-foreground">/buy/</span>
-                            <Input 
-                                id="slug" 
-                                name="slug" 
-                                defaultValue={product?.id || ''} 
+                            <Input
+                                id="slug"
+                                name="slug"
+                                defaultValue={product?.id || ''}
                                 placeholder={t('admin.productForm.slugPlaceholder')}
                                 pattern="^[a-zA-Z0-9_-]+$"
                                 className="flex-1"
@@ -96,11 +97,23 @@ export default function ProductForm({ product, categories = [] }: { product?: an
                         </datalist>
                     </div>
 
-                    <div className="flex items-center gap-2">
-                        <input
+                    <div className="flex items-center space-x-2">
+                        <Checkbox
+                            id="isShared"
+                            name="isShared"
+                            defaultChecked={product?.isShared ?? false}
+                            className="h-4 w-4 accent-primary"
+                        />
+                        <div className="flex flex-col">
+                            <Label htmlFor="isShared" className="cursor-pointer font-medium">{t('admin.productForm.isSharedLabel')}</Label>
+                            <span className="text-xs text-muted-foreground">{t('admin.productForm.isSharedHint')}</span>
+                        </div>
+                    </div>
+
+                    <div className="flex items-center space-x-2">
+                        <Checkbox
                             id="isHot"
                             name="isHot"
-                            type="checkbox"
                             defaultChecked={!!product?.isHot}
                             className="h-4 w-4 accent-primary"
                         />

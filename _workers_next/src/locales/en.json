@@ -421,6 +421,8 @@
             "categoryLabel": "Category",
             "categoryPlaceholder": "general",
             "isHotLabel": "Mark as Hot",
+            "isSharedLabel": "Shared Product (Unlimited Stock)",
+            "isSharedHint": "Stock will not decrease after purchase (e.g. shared accounts, tutorials)",
             "imageLabel": "Image URL",
             "imagePlaceholder": "https://...",
             "saveButton": "Save Product",

@@ -1,5 +1,5 @@
 import { db } from "@/lib/db";
-import { orders, cards } from "@/lib/db/schema";
+import { orders, cards, products } from "@/lib/db/schema";
 import { eq, sql } from "drizzle-orm";
 import { isPaymentOrder } from "@/lib/payment";
 
@@ -34,6 +34,59 @@ export async function processOrderFulfillment(orderId: string, paidAmount: numbe
     }
 
     if (order.status === 'pending' || order.status === 'cancelled') {
+        // Check if product is shared (infinite stock)
+        const product = await db.query.products.findFirst({
+            where: eq(products.id, order.productId),
+            columns: {
+                isShared: true
+            }
+        });
+
+        const isShared = product?.isShared;
+
+        if (isShared) {
+            // For shared products:
+            // 1. Find ONE available card (unused)
+            // 2. Do NOT mark as used
+            // 3. Use random selection for load balancing if multiple cards exist
+            const availableCard = await db.select({ id: cards.id, cardKey: cards.cardKey })
+                .from(cards)
+                .where(sql`${cards.productId} = ${order.productId} AND COALESCE(${cards.isUsed}, 0) = 0`)
+                .orderBy(sql`RANDOM()`)
+                .limit(1);
+
+            if (availableCard.length > 0) {
+                // For shared products, we use the same card key for all items
+                const key = availableCard[0].cardKey;
+                const cardKeys = Array(order.quantity || 1).fill(key);
+
+                // No transaction - D1 doesn't support SQL transactions
+                // Update order status to delivered
+                await db.update(orders)
+                    .set({
+                        status: 'delivered',
+                        paidAt: new Date(),
+                        deliveredAt: new Date(),
+                        tradeNo: tradeNo,
+                        cardKey: cardKeys.join('\n'), // Store keys separated by newline
+                        currentPaymentId: null // Clear payment ID to prevent re-processing
+                    })
+                    .where(eq(orders.orderId, orderId));
+
+                // Log output for debugging
+                console.log(`[Fulfill] Shared product order ${orderId} delivered. Card: ${key}`);
+
+                return { success: true, status: 'processed' };
+            } else {
+                // If no card is available for a shared product, treat as no stock
+                await db.update(orders)
+                    .set({ status: 'paid', paidAt: new Date(), tradeNo: tradeNo })
+                    .where(eq(orders.orderId, orderId));
+                console.log(`[Fulfill] Order ${orderId} marked as paid (no stock for shared product)`);
+                return { success: true, status: 'processed' };
+            }
+        }
+
         const quantity = order.quantity || 1;
 
         // No transaction - D1 doesn't support SQL transactions

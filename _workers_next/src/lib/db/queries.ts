@@ -10,17 +10,24 @@ async function safeAddColumn(table: string, column: string, definition: string) 
         await db.run(sql.raw(`ALTER TABLE ${table} ADD COLUMN ${column} ${definition}`));
     } catch (e: any) {
         // Ignore "duplicate column" errors in SQLite
-        if (!e?.message?.includes('duplicate column')) throw e;
+        // Use JSON.stringify AND String(e) to be safe across different environments
+        const errorString = (JSON.stringify(e) + String(e)).toLowerCase();
+        if (!errorString.includes('duplicate column')) throw e;
     }
 }
 
 // Auto-initialize database on first query
 async function ensureDatabaseInitialized() {
     if (dbInitialized) return;
-    
+
     try {
         // Quick check if products table exists
         await db.run(sql`SELECT 1 FROM products LIMIT 1`);
+
+        // IMPORTANT: Even if table exists, ensure columns exist!
+        // This is a proactive check on startup.
+        await ensureProductsColumns();
+
         dbInitialized = true;
         return;
     } catch {
@@ -28,7 +35,7 @@ async function ensureDatabaseInitialized() {
     }
 
     console.log("First run detected, initializing database...");
-    
+
     await db.run(sql`
         -- Products table
         CREATE TABLE IF NOT EXISTS products (
@@ -41,6 +48,7 @@ async function ensureDatabaseInitialized() {
             image TEXT,
             is_hot INTEGER DEFAULT 0,
             is_active INTEGER DEFAULT 1,
+            is_shared INTEGER DEFAULT 0,
             sort_order INTEGER DEFAULT 0,
             purchase_limit INTEGER,
             created_at INTEGER DEFAULT (unixepoch() * 1000)
@@ -141,7 +149,7 @@ async function ensureDatabaseInitialized() {
             processed_at INTEGER
         );
     `);
-    
+
     dbInitialized = true;
     console.log("Database initialized successfully");
 }
@@ -150,6 +158,7 @@ async function ensureProductsColumns() {
     await safeAddColumn('products', 'compare_at_price', 'TEXT');
     await safeAddColumn('products', 'is_hot', 'INTEGER DEFAULT 0');
     await safeAddColumn('products', 'purchase_warning', 'TEXT');
+    await safeAddColumn('products', 'is_shared', 'INTEGER DEFAULT 0');
 }
 
 async function ensureOrdersColumns() {
@@ -162,13 +171,16 @@ async function withProductColumnFallback<T>(fn: () => Promise<T>): Promise<T> {
     try {
         return await fn()
     } catch (error: any) {
-        const errorString = JSON.stringify(error)
-        // Check for missing column errors (PostgreSQL: 42703, SQLite/D1: no such column)
-        if (errorString.includes('42703') || errorString.includes('no such column')) {
-            await ensureProductsColumns()
-            return await fn()
+        // Use more robust string conversion for error checking
+        const errorString = (JSON.stringify(error) + String(error) + (error?.message || '')).toLowerCase();
+
+        // Check for missing column errors (PostgreSQL: 42703, SQLite/D1: no such column, D1_COLUMN_NOTFOUND)
+        if (errorString.includes('42703') || errorString.includes('no such column') || errorString.includes('column not found') || errorString.includes('d1_column_notfound')) {
+            console.log("Detected missing column error, attempting remediation...");
+            await ensureProductsColumns();
+            return await fn();
         }
-        throw error
+        throw error;
     }
 }
 
@@ -196,9 +208,10 @@ export async function getProducts() {
             category: products.category,
             isHot: products.isHot,
             isActive: products.isActive,
+            isShared: products.isShared,
             sortOrder: products.sortOrder,
             purchaseLimit: products.purchaseLimit,
-            stock: sql<number>`count(case when ${cards.id} IS NOT NULL AND COALESCE(${cards.isUsed}, 0) = 0 AND (${cards.reservedAt} IS NULL OR ${cards.reservedAt} < ${Math.floor((Date.now() - 5 * 60 * 1000) / 1000)}) then 1 end)`,
+            stock: sql<number>`CASE WHEN ${products.isShared} = 1 THEN (CASE WHEN count(case when ${cards.id} IS NOT NULL AND COALESCE(${cards.isUsed}, 0) = 0 then 1 end) > 0 THEN 999999 ELSE 0 END) ELSE count(case when ${cards.id} IS NOT NULL AND COALESCE(${cards.isUsed}, 0) = 0 AND (${cards.reservedAt} IS NULL OR ${cards.reservedAt} < ${Math.floor((Date.now() - 5 * 60 * 1000) / 1000)}) then 1 end) END`,
             locked: sql<number>`count(case when ${cards.id} IS NOT NULL AND COALESCE(${cards.isUsed}, 0) = 0 AND (${cards.reservedAt} >= ${Math.floor((Date.now() - 5 * 60 * 1000) / 1000)}) then 1 end)`,
             sold: sql<number>`count(case when COALESCE(${cards.isUsed}, 0) = 1 then 1 end)`
         })
@@ -213,7 +226,7 @@ export async function getProducts() {
 export async function getActiveProducts() {
     // Auto-initialize database on first access
     await ensureDatabaseInitialized();
-    
+
     return await withProductColumnFallback(async () => {
         return await db.select({
             id: products.id,
@@ -224,8 +237,9 @@ export async function getActiveProducts() {
             image: products.image,
             category: products.category,
             isHot: products.isHot,
+            isShared: products.isShared,
             purchaseLimit: products.purchaseLimit,
-            stock: sql<number>`count(case when ${cards.id} IS NOT NULL AND COALESCE(${cards.isUsed}, 0) = 0 AND (${cards.reservedAt} IS NULL OR ${cards.reservedAt} < ${Math.floor((Date.now() - 5 * 60 * 1000) / 1000)}) then 1 end)`,
+            stock: sql<number>`CASE WHEN ${products.isShared} = 1 THEN (CASE WHEN count(case when ${cards.id} IS NOT NULL AND COALESCE(${cards.isUsed}, 0) = 0 then 1 end) > 0 THEN 999999 ELSE 0 END) ELSE count(case when ${cards.id} IS NOT NULL AND COALESCE(${cards.isUsed}, 0) = 0 AND (${cards.reservedAt} IS NULL OR ${cards.reservedAt} < ${Math.floor((Date.now() - 5 * 60 * 1000) / 1000)}) then 1 end) END`,
             locked: sql<number>`count(case when ${cards.id} IS NOT NULL AND COALESCE(${cards.isUsed}, 0) = 0 AND (${cards.reservedAt} >= ${Math.floor((Date.now() - 5 * 60 * 1000) / 1000)}) then 1 end)`,
             sold: sql<number>`count(case when COALESCE(${cards.isUsed}, 0) = 1 then 1 end)`
         })
@@ -250,9 +264,10 @@ export async function getProduct(id: string) {
             category: products.category,
             isHot: products.isHot,
             isActive: products.isActive,
+            isShared: products.isShared,
             purchaseLimit: products.purchaseLimit,
             purchaseWarning: products.purchaseWarning,
-            stock: sql<number>`count(case when ${cards.id} IS NOT NULL AND COALESCE(${cards.isUsed}, 0) = 0 AND (${cards.reservedAt} IS NULL OR ${cards.reservedAt} < ${fiveMinutesAgo}) then 1 end)`,
+            stock: sql<number>`CASE WHEN ${products.isShared} = 1 THEN (CASE WHEN count(case when ${cards.id} IS NOT NULL AND COALESCE(${cards.isUsed}, 0) = 0 then 1 end) > 0 THEN 999999 ELSE 0 END) ELSE count(case when ${cards.id} IS NOT NULL AND COALESCE(${cards.isUsed}, 0) = 0 AND (${cards.reservedAt} IS NULL OR ${cards.reservedAt} < ${fiveMinutesAgo}) then 1 end) END`,
             locked: sql<number>`count(case when ${cards.id} IS NOT NULL AND COALESCE(${cards.isUsed}, 0) = 0 AND (${cards.reservedAt} >= ${fiveMinutesAgo}) then 1 end)`
         })
             .from(products)
@@ -271,8 +286,7 @@ export async function getProduct(id: string) {
 
 // Get product for admin (includes inactive products)
 export async function getProductForAdmin(id: string) {
-    // Try with all columns first
-    try {
+    return await withProductColumnFallback(async () => {
         const result = await db.select({
             id: products.id,
             name: products.name,
@@ -283,6 +297,7 @@ export async function getProductForAdmin(id: string) {
             category: products.category,
             isHot: products.isHot,
             isActive: products.isActive,
+            isShared: products.isShared,
             purchaseLimit: products.purchaseLimit,
             purchaseWarning: products.purchaseWarning,
         })
@@ -290,38 +305,7 @@ export async function getProductForAdmin(id: string) {
             .where(eq(products.id, id));
 
         return result[0] || null;
-    } catch (error: any) {
-        // If purchaseWarning column doesn't exist, auto-add it and retry
-        const errorString = JSON.stringify(error);
-        if (errorString.includes('no such column') || errorString.includes('purchase_warning')) {
-            console.log('Auto-adding purchase_warning column to products table...');
-            try {
-                await db.run(sql`ALTER TABLE products ADD COLUMN purchase_warning TEXT`);
-            } catch {
-                // Column might already exist, ignore
-            }
-            
-            // Retry the query
-            const result = await db.select({
-                id: products.id,
-                name: products.name,
-                description: products.description,
-                price: products.price,
-                compareAtPrice: products.compareAtPrice,
-                image: products.image,
-                category: products.category,
-                isHot: products.isHot,
-                isActive: products.isActive,
-                purchaseLimit: products.purchaseLimit,
-                purchaseWarning: products.purchaseWarning,
-            })
-                .from(products)
-                .where(eq(products.id, id));
-
-            return result[0] || null;
-        }
-        throw error;
-    }
+    });
 }
 
 // Dashboard Stats
@@ -601,8 +585,8 @@ function isMissingTable(error: any) {
 }
 
 function isMissingTableOrColumn(error: any) {
-    const errorString = JSON.stringify(error);
-    return isMissingTable(error) || errorString.includes('42703');
+    const errorString = (JSON.stringify(error) + String(error) + (error?.message || '')).toLowerCase();
+    return isMissingTable(error) || errorString.includes('42703') || errorString.includes('no such column') || errorString.includes('column not found') || errorString.includes('d1_column_notfound');
 }
 
 async function ensureLoginUsersTable() {

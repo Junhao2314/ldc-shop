@@ -325,9 +325,11 @@ export function HomeContent({ products, announcement, visitorCount, categories: 
                                             </span>
                                         )}
                                         <div className="flex items-center gap-2 mt-1">
-                                            <span className="text-[10px] text-muted-foreground">
-                                                {t('common.stock')}: {product.stockCount}
-                                            </span>
+                                            <div className="flex items-center text-xs text-muted-foreground">
+                                                {/* Assuming Archive icon is imported, e.g., from 'lucide-react' */}
+                                                {/* <Archive className="w-3 h-3 mr-1" /> */}
+                                                <span>{t('admin.products.stock')}: {product.stockCount >= 999999 ? '∞' : product.stockCount}</span>
+                                            </div>
                                             <span className="text-[10px] text-muted-foreground">
                                                 {t('common.sold')}: {product.soldCount}
                                             </span>

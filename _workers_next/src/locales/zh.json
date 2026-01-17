@@ -421,6 +421,8 @@
             "categoryLabel": "分类",
             "categoryPlaceholder": "通用",
             "isHotLabel": "标记为热门",
+            "isSharedLabel": "共享卡密商品（无限库存）",
+            "isSharedHint": "购买后不扣减库存（适用于共享账号、教程等）",
             "imageLabel": "图片地址",
             "imagePlaceholder": "https://...",
             "saveButton": "保存商品",
