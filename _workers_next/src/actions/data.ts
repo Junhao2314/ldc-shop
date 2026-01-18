@@ -46,6 +46,16 @@ async function repairTimestamps() {
     }
 }
 
+export async function repairDataAction() {
+    await checkAdmin()
+    try {
+        await repairTimestamps()
+        return { success: true }
+    } catch (e: any) {
+        return { success: false, error: e.message }
+    }
+}
+
 export async function importData(formData: FormData) {
     await checkAdmin()
 

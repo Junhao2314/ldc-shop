@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Download, Upload, FileUp, AlertCircle, CheckCircle2 } from "lucide-react"
-import { importData } from "@/actions/data"
+import { importData, repairDataAction } from "@/actions/data"
 import { toast } from "sonner"
 import { cn } from "@/lib/utils"
 
@@ -22,6 +22,25 @@ export function AdminDataContent({ shopName }: { shopName: string | null }) {
   const [activeTab, setActiveTab] = useState<'export' | 'import'>('export')
   const [importing, setImporting] = useState(false)
   const [importResult, setImportResult] = useState<{ count: number, errors: number } | null>(null)
+  const [repairing, setRepairing] = useState(false)
+
+  const handleRepair = async () => {
+    if (!confirm(t('admin.export.repairConfirm') || "Repair timestamps? This will convert Vercel-style text dates to Workers-style numbers.")) return
+
+    setRepairing(true)
+    try {
+      const result = await repairDataAction()
+      if (result.success) {
+        toast.success(t('common.success'))
+      } else {
+        toast.error(result.error || t('common.error'))
+      }
+    } catch (err: any) {
+      toast.error(err.message)
+    } finally {
+      setRepairing(false)
+    }
+  }
 
   const handleImport = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault()
@@ -143,6 +162,30 @@ export function AdminDataContent({ shopName }: { shopName: string | null }) {
                     )}
                   </Button>
                 </form>
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2"><AlertCircle className="h-4 w-4" />{t('admin.export.repairTitle') || "Data Repair"}</CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <p className="text-sm text-muted-foreground">
+                  {t('admin.export.repairDesc') || "If you imported data from Vercel version and see sorting issues (new orders at bottom), run this tool to fix timestamp formats."}
+                </p>
+                <Button variant="outline" onClick={handleRepair} disabled={repairing}>
+                  {repairing ? (
+                    <>
+                      <Upload className="mr-2 h-4 w-4 animate-bounce" />
+                      {t('common.processing')}
+                    </>
+                  ) : (
+                    <>
+                      <CheckCircle2 className="mr-2 h-4 w-4" />
+                      {t('admin.export.repairBtn') || "Fix Timestamp Sorting"}
+                    </>
+                  )}
+                </Button>
               </CardContent>
             </Card>
           </div>
