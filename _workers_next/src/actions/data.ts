@@ -15,6 +15,37 @@ async function executeStatement(statement: string) {
     }
 }
 
+async function repairTimestamps() {
+    const timestampColumns = [
+        { table: 'products', cols: ['created_at'] },
+        { table: 'cards', cols: ['created_at', 'reserved_at', 'used_at'] },
+        { table: 'orders', cols: ['created_at', 'paid_at', 'delivered_at'] },
+        { table: 'login_users', cols: ['created_at', 'last_login_at'] },
+        { table: 'daily_checkins_v2', cols: ['created_at'] },
+        { table: 'settings', cols: ['updated_at'] },
+        { table: 'reviews', cols: ['created_at'] },
+        { table: 'categories', cols: ['created_at', 'updated_at'] },
+        { table: 'refund_requests', cols: ['created_at', 'updated_at', 'processed_at'] }
+    ]
+
+    for (const { table, cols } of timestampColumns) {
+        for (const col of cols) {
+            try {
+                // SQLite: Convert TEXT timestamps (e.g. '2023-01-01...') to INTEGER (Unix MS)
+                // Only targets rows where column is currently TEXT
+                // strftime('%s') returns seconds, so * 1000 for ms
+                await db.run(sql.raw(`
+                    UPDATE ${table} 
+                    SET ${col} = CAST(strftime('%s', ${col}) AS INTEGER) * 1000 
+                    WHERE typeof(${col}) = 'text' AND ${col} IS NOT NULL AND ${col} != ''
+                `))
+            } catch (e) {
+                console.error(`Failed to repair timestamp for ${table}.${col}:`, e)
+            }
+        }
+    }
+}
+
 export async function importData(formData: FormData) {
     await checkAdmin()
 
@@ -120,6 +151,9 @@ export async function importData(formData: FormData) {
                 }
             }
         }
+
+        // Run repair regardless of insert success to fix any existing data issues
+        await repairTimestamps()
 
         revalidatePath('/admin')
         revalidateTag('home:products')
