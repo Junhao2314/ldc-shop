@@ -1760,10 +1760,6 @@ export async function cancelExpiredOrders(filters: { productId?: string; userId?
         const orderIds = candidates.map((row) => row.orderId).filter(Boolean);
         if (!orderIds.length) return orderIds;
 
-        await db.update(orders)
-            .set({ status: 'cancelled' })
-            .where(inArray(orders.orderId, orderIds));
-
         try {
             await db.run(sql.raw(`ALTER TABLE cards ADD COLUMN reserved_order_id TEXT`));
         } catch { /* duplicate column */ }
@@ -1771,7 +1767,9 @@ export async function cancelExpiredOrders(filters: { productId?: string; userId?
             await db.run(sql.raw(`ALTER TABLE cards ADD COLUMN reserved_at INTEGER`));
         } catch { /* duplicate column */ }
 
-        for (const expiredOrderId of orderIds) {
+        for (const expired of candidates) {
+            const expiredOrderId = expired.orderId;
+            if (!expiredOrderId) continue;
             try {
                 // Mirror manual cancel behavior to guarantee release
                 await db.update(cards)
@@ -1780,13 +1778,18 @@ export async function cancelExpiredOrders(filters: { productId?: string; userId?
             } catch (error: any) {
                 if (!isMissingTableOrColumn(error)) throw error;
             }
+            await db.update(orders)
+                .set({ status: 'cancelled' })
+                .where(eq(orders.orderId, expiredOrderId));
         }
 
-        try {
-            const productIds = Array.from(new Set(candidates.map((row) => row.productId).filter(Boolean)));
-            await recalcProductAggregatesForMany(productIds);
-        } catch {
-            // best effort
+        const productIds = Array.from(new Set(candidates.map((row) => row.productId).filter(Boolean)));
+        for (const pid of productIds) {
+            try {
+                await recalcProductAggregates(pid);
+            } catch {
+                // best effort
+            }
         }
         try {
             updateTag('home:products');
