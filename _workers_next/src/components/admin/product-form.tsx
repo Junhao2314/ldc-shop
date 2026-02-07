@@ -118,7 +118,7 @@ export default function ProductForm({ product, categories = [] }: { product?: an
                     </div>
 
                     <div className="grid gap-2">
-                        <Label htmlFor="purchaseLimit">{t('admin.productForm.purchaseLimitLabel') || "Purchase Limit (0 or empty for unlimited)"}</Label>
+                        <Label htmlFor="purchaseLimit">{t('admin.productForm.purchaseLimitLabel') || "Per-user Purchase Limit (0 or empty for unlimited)"}</Label>
                         <Input id="purchaseLimit" name="purchaseLimit" type="number" defaultValue={currentProduct?.purchaseLimit} placeholder={t('admin.productForm.purchaseLimitPlaceholder') || "e.g. 1"} />
                     </div>
 

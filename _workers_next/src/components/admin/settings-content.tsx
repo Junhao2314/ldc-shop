@@ -6,6 +6,7 @@ import Link from "next/link"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
+import { Textarea } from "@/components/ui/textarea"
 import { Label } from "@/components/ui/label"
 import { TrendingUp, ShoppingCart, CreditCard, Package, Users } from "lucide-react"
 import { saveShopName, saveShopDescription, saveShopLogo, saveShopFooter, saveThemeColor, saveLowStockThreshold, saveCheckinReward, saveCheckinEnabled, saveWishlistEnabled, saveNoIndex, saveRefundReclaimCards, saveRegistryHideNav } from "@/actions/admin"
@@ -500,11 +501,13 @@ export function AdminSettingsContent({ stats, shopName, shopDescription, shopLog
                 <CardContent className="space-y-4">
                     <div className="grid gap-2 md:max-w-xl">
                         <div className="flex gap-2">
-                            <Input
+                            <Textarea
                                 id="shop-footer"
                                 value={shopFooterValue}
                                 onChange={(e) => setShopFooterValue(e.target.value)}
                                 placeholder={t('admin.settings.footer.placeholder')}
+                                rows={3}
+                                className="font-mono text-sm"
                             />
                             <Button variant="outline" onClick={handleSaveShopFooter} disabled={savingShopFooter}>
                                 {savingShopFooter ? t('common.processing') : t('common.save')}
@@ -531,21 +534,21 @@ export function AdminSettingsContent({ stats, shopName, shopDescription, shopLog
                                 : 'transparent'
 
                             return (
-                            <button
-                                key={value}
-                                onClick={() => handleSaveTheme(value)}
-                                disabled={savingTheme}
-                                className={`
+                                <button
+                                    key={value}
+                                    onClick={() => handleSaveTheme(value)}
+                                    disabled={savingTheme}
+                                    className={`
                                     w-12 h-12 rounded-full border-2 transition-all
                                     ${selectedTheme === value ? 'ring-2 ring-offset-2 ring-foreground scale-110' : 'hover:scale-105'}
                                     ${savingTheme ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}
                                 `}
-                                style={{
-                                    backgroundColor: bgColor,
-                                    borderColor
-                                }}
-                                title={t(`admin.settings.themeColor.${value}`)}
-                            />
+                                    style={{
+                                        backgroundColor: bgColor,
+                                        borderColor
+                                    }}
+                                    title={t(`admin.settings.themeColor.${value}`)}
+                                />
                             )
                         })}
                     </div>

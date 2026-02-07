@@ -18,10 +18,10 @@ interface BuyButtonProps {
     disabled?: boolean
     quantity?: number
     autoOpen?: boolean // Auto-open dialog when mounted (for after warning confirmation)
-    emailEnabled?: boolean
+    emailConfigured?: boolean
 }
 
-export function BuyButton({ productId, price, productName, disabled, quantity = 1, autoOpen = false, emailEnabled = true }: BuyButtonProps) {
+export function BuyButton({ productId, price, productName, disabled, quantity = 1, autoOpen = false, emailConfigured = false }: BuyButtonProps) {
     const [loading, setLoading] = useState(false)
     const [open, setOpen] = useState(false)
     const [points, setPoints] = useState(0)
@@ -65,7 +65,7 @@ export function BuyButton({ productId, price, productName, disabled, quantity = 
 
         try {
             setLoading(true)
-            const result = await createOrder(productId, quantity, emailEnabled ? email : '', usePoints)
+            const result = await createOrder(productId, quantity, email, usePoints)
 
             if (!result?.success) {
                 const message = result?.error ? t(result.error) : t('common.error')
@@ -148,18 +148,18 @@ export function BuyButton({ productId, price, productName, disabled, quantity = 
                             <span>{numericalPrice.toFixed(2)}</span>
                         </div>
 
-                    {emailEnabled && (
-                        <div className="floating-field">
-                            <Input
-                                id="email"
-                                type="email"
-                                placeholder=" "
-                                value={email}
-                                onChange={(e) => setEmail(e.target.value)}
-                            />
-                            <Label htmlFor="email" className="floating-label">{t('buy.modal.emailLabel')}</Label>
-                        </div>
-                    )}
+                    <div className="floating-field">
+                        <Input
+                            id="email"
+                            type="text"
+                            placeholder=" "
+                            value={email}
+                            onChange={(e) => setEmail(e.target.value)}
+                        />
+                        <Label htmlFor="email" className="floating-label">
+                            {emailConfigured ? t('buy.modal.emailLabelConfigured') : t('buy.modal.emailLabelUnconfigured')}
+                        </Label>
+                    </div>
 
                         {points > 0 && (
                             <div className="flex items-center space-x-2 border p-3 rounded-md">

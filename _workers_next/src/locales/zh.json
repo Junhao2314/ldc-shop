@@ -116,8 +116,9 @@
             "total": "总计",
             "payWithPoints": "积分支付",
             "proceedPayment": "前往支付",
-            "emailLabel": "接收邮箱 (可选)",
-            "emailPlaceholder": "输入用于接收卡密的邮箱"
+            "emailLabelConfigured": "邮箱或备注信息 (可选)",
+            "emailLabelUnconfigured": "备注信息 (可选)",
+            "emailPlaceholder": "输入邮箱或备注信息"
         },
         "warningTitle": "购买提醒",
         "confirmWarning": "我已了解，继续购买",
@@ -591,7 +592,7 @@
             "imageLabel": "图片地址",
             "imagePlaceholder": "https://...",
             "saveButton": "保存商品",
-            "purchaseLimitLabel": "限购数量（累计）",
+            "purchaseLimitLabel": "每人限购数量（累计）",
             "purchaseLimitPlaceholder": "不填或 0 为无限购",
             "purchaseWarningLabel": "购买前提醒弹窗",
             "purchaseWarningPlaceholder": "请输入需要提醒用户的内容，如：请确认您已阅读商品描述...",

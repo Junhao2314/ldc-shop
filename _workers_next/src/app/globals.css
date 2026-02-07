@@ -453,3 +453,16 @@
   color: hsl(var(--ring));
   transform: translateY(0) scale(0.95);
 }
+
+/* ======================================
+   FOOTER HTML STYLES
+   ====================================== */
+.footer-html a {
+  color: var(--muted-foreground);
+  text-decoration: none;
+  transition: color 0.3s ease;
+}
+
+.footer-html a:hover {
+  color: var(--primary);
+}

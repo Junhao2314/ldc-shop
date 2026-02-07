@@ -9,6 +9,13 @@ import { RESERVATION_TTL_MS } from "@/lib/constants";
 import { updateTag } from "next/cache";
 import { after } from "next/server";
 
+const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
+
+function isValidEmail(value: string | null | undefined) {
+    if (!value) return false
+    return EMAIL_REGEX.test(value.trim())
+}
+
 export async function processOrderFulfillment(orderId: string, paidAmount: number, tradeNo: string) {
     const order = await db.query.orders.findFirst({
         where: eq(orders.orderId, orderId)
@@ -156,9 +163,10 @@ export async function processOrderFulfillment(orderId: string, paidAmount: numbe
                         console.error('[Notification] Shared product notify failed:', err);
                     }
 
-                    if (order.email) {
+                    const recipientEmail = order.email?.trim()
+                    if (recipientEmail && isValidEmail(recipientEmail)) {
                         await sendOrderEmail({
-                            to: order.email,
+                            to: recipientEmail,
                             orderId: orderId,
                             productName: product?.name || 'Product',
                             cardKeys: cardKeys.join('\n')
@@ -295,9 +303,10 @@ export async function processOrderFulfillment(orderId: string, paidAmount: numbe
                     console.error('[Notification] Delivery notify failed:', err);
                 }
 
-                if (order.email) {
+                const recipientEmail = order.email?.trim()
+                if (recipientEmail && isValidEmail(recipientEmail)) {
                     await sendOrderEmail({
-                        to: order.email,
+                        to: recipientEmail,
                         orderId: orderId,
                         productName: product?.name || 'Product',
                         cardKeys: joinedKeys

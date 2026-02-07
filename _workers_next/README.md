@@ -126,7 +126,7 @@
 | `MERCHANT_ID` | Secret | EPay 商户 ID |
 | `MERCHANT_KEY` | Secret | EPay 商户 Key |
 | `AUTH_SECRET` | Secret | 随机字符串 (可用 `openssl rand -base64 32` 生成) |
-| `ADMIN_USERS` | Secret | 管理员用户名，逗号分隔 |
+| `ADMIN_USERS` | Secret | 管理员的 Linux DO 用户名，逗号分隔。例如: `zhangsan,lisi` |
 | `NEXT_PUBLIC_APP_URL` | **Text** | 你的 Workers 域名 (如 `https://ldc-shop.xxx.workers.dev`) |
 
 > ⚠️ **重要**: `NEXT_PUBLIC_APP_URL` **必须**设置为 Text 类型，不能用 Secret，否则支付签名会失败！
@@ -144,6 +144,17 @@
 #### 5. 首次访问
 
 访问你的 Workers 域名，首页会自动创建所有数据库表。
+
+---
+
+#### 6. 进入管理后台
+
+1. **设置管理员**: 确保在环境变量 `ADMIN_USERS` 中配置了你的 Linux DO 用户名（不区分大小写，多个用户用逗号分隔）。
+2. **登录商城**: 使用该管理账号登录商城。
+3. **访问入口**:
+    - **顶部导航**: 登录后，顶部导航栏会出现 "管理后台" 链接（桌面端）。
+    - **下拉菜单**: 点击右上角头像调出下拉菜单，可以看到 "管理后台" 选项。
+    - **直接访问**: 也可以直接访问 `/admin` 路径（例如 `https://your-domain.workers.dev/admin`）。
 
 ---
 
@@ -178,7 +189,7 @@
 | `MERCHANT_ID` | EPay 商户 ID（建议 Secret） |
 | `MERCHANT_KEY` | EPay 商户 Key（Secret） |
 | `AUTH_SECRET` | NextAuth 加密密钥（Secret） |
-| `ADMIN_USERS` | 管理员用户名列表 (逗号分隔，建议 Secret) |
+| `ADMIN_USERS` | 管理员的 Linux DO 用户名 (name)，逗号分隔。例如: `zhangsan,lisi` |
 | `NEXT_PUBLIC_APP_URL` | 部署后的完整 URL (用于回调，必须 Text) |
 
 ## 📄 许可证

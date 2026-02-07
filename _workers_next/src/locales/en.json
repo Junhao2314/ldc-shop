@@ -116,8 +116,9 @@
             "total": "Total",
             "payWithPoints": "Pay with Points",
             "proceedPayment": "Proceed to Payment",
-            "emailLabel": "Email (Optional)",
-            "emailPlaceholder": "Enter email to receive card key"
+            "emailLabelConfigured": "Email or Note (Optional)",
+            "emailLabelUnconfigured": "Note (Optional)",
+            "emailPlaceholder": "Enter email or note"
         },
         "warningTitle": "Important Notice",
         "confirmWarning": "I understand, continue",
@@ -591,7 +592,7 @@
             "imageLabel": "Image URL",
             "imagePlaceholder": "https://...",
             "saveButton": "Save Product",
-            "purchaseLimitLabel": "Purchase Limit (Cumulative)",
+            "purchaseLimitLabel": "Per-user Purchase Limit (Cumulative)",
             "purchaseLimitPlaceholder": "0 or empty for unlimited",
             "purchaseWarningLabel": "Purchase Warning Popup",
             "purchaseWarningPlaceholder": "Enter a warning message, e.g.: Please confirm you have read the product description...",

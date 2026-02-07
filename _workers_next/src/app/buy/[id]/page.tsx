@@ -31,6 +31,8 @@ export default async function BuyPage({ params }: BuyPageProps) {
         getEmailSettings().catch(() => ({ apiKey: null, fromEmail: null, enabled: false, fromName: null }))
     ])
 
+    const emailConfigured = !!(emailSettings?.enabled && emailSettings?.apiKey && emailSettings?.fromEmail)
+
     // Return 404 if product doesn't exist or is inactive
     if (!product) {
         const visibility = await getProductVisibility(id).catch(() => null)
@@ -76,7 +78,7 @@ export default async function BuyPage({ params }: BuyPageProps) {
             reviewCount={Number(product.reviewCount || 0)}
             canReview={userCanReview.canReview}
             reviewOrderId={userCanReview.orderId}
-            emailEnabled={!!(emailSettings?.enabled && emailSettings?.apiKey && emailSettings?.fromEmail)}
+            emailConfigured={emailConfigured}
         />
     )
 }
